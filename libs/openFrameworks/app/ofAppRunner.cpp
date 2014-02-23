@@ -42,7 +42,7 @@ static ofPtr<ofAppBaseWindow> 		window;
 	#include "ofAppiOSWindow.h"
 #elif defined(TARGET_ANDROID)
 	#include "ofAppAndroidWindow.h"
-#elif defined(TARGET_RASPBERRY_PI)
+#elif defined(TARGET_RASPBERRY_PI) || defined(TARGET_SUNXI_MFB)
 	#include "ofAppEGLWindow.h"
 #else
 	#include "ofAppGLFWWindow.h"
@@ -151,7 +151,7 @@ void ofSetupOpenGL(ofPtr<ofAppBaseWindow> windowPtr, int w, int h, int screenMod
 	window = windowPtr;
 
 	if(ofIsGLProgrammableRenderer()){
-        #if defined(TARGET_RASPBERRY_PI)
+    #if defined(TARGET_RASPBERRY_PI) || defined(TARGET_SUNXI_MFB)
 		static_cast<ofAppEGLWindow*>(window.get())->setGLESVersion(2);
 		#elif defined(TARGET_LINUX_ARM)
 		static_cast<ofAppGLFWWindow*>(window.get())->setOpenGLVersion(2,0);
@@ -159,7 +159,7 @@ void ofSetupOpenGL(ofPtr<ofAppBaseWindow> windowPtr, int w, int h, int screenMod
 		static_cast<ofAppGLFWWindow*>(window.get())->setOpenGLVersion(3,2);
 		#endif
 	}else{
-	    #if defined(TARGET_LINUX_ARM) && !defined(TARGET_RASPBERRY_PI)
+	  #if defined(TARGET_LINUX_ARM) && !defined(TARGET_RASPBERRY_PI) && !defined(TARGET_SUNXI_MFB) 
 		static_cast<ofAppGLFWWindow*>(window.get())->setOpenGLVersion(1,0);
 		#endif
 	}
@@ -205,7 +205,7 @@ void ofSetupOpenGL(int w, int h, int screenMode){
 		window = ofPtr<ofAppBaseWindow>(new ofAppiOSWindow());
 	#elif defined(TARGET_ANDROID)
 		window = ofPtr<ofAppBaseWindow>(new ofAppAndroidWindow());
-	#elif defined(TARGET_RASPBERRY_PI)
+	#elif defined(TARGET_RASPBERRY_PI) || defined(TARGET_SUNXI_MFB)
 		window = ofPtr<ofAppBaseWindow>(new ofAppEGLWindow());
     #else
 		window = ofPtr<ofAppBaseWindow>(new ofAppGLFWWindow());
@@ -468,7 +468,7 @@ void ofSetVerticalSync(bool bSync){
 }
 
 //-------------------------- native window handles
-#if defined(TARGET_LINUX) && !defined(TARGET_RASPBERRY_PI)
+#if defined(TARGET_LINUX) && !defined(TARGET_RASPBERRY_PI) && !defined(TARGET_SUNXI_MFB) 
 Display* ofGetX11Display(){
 	return window->getX11Display();
 }

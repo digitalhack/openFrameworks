@@ -34,6 +34,16 @@
 
 
 void ofGLReadyCallback();
+#ifdef TARGET_SUNXI_MFB
+// Needed for ioctl to determine /dev/fb0's height and width
+#include <fcntl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <asm/types.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
+#include "sunxi_disp_ioctl.h"
+#endif
 
 // native events
 struct udev*         udev;
@@ -185,8 +195,10 @@ static const char* eglErrorString(EGLint err) {
 }
 
 
+
 // X11 events
   #include <X11/XKBlib.h>
+
 
 
 #ifdef TARGET_RASPBERRY_PI
@@ -211,6 +223,7 @@ static const char* eglErrorString(EGLint err) {
     #define ELEMENT_CHANGE_TRANSFORM      (1<<5)
   #endif
 #endif
+
 
 
 //-------------------------------------------------------------------------------------
@@ -383,6 +396,16 @@ void ofAppEGLWindow::exit(ofEventArgs &e) {
 void ofAppEGLWindow::initNative() {
     #ifdef TARGET_RASPBERRY_PI
         initRPiNative();
+    #elif defined TARGET_SUNXI_MFB
+      int tty_fd = open("/dev/tty1", O_RDWR);
+      if (tty_fd != -1) {
+        if(ioctl(tty_fd, KDSETMODE, KD_GRAPHICS) == -1) {
+          ofLogError("ofAppEGLWindow::initNative")  << "Failed to set graphics mode";
+        }
+        close(tty_fd);
+      } else {
+        ofLogError("ofAppEGLWindow::initNative")  << "Failed to open tty set graphics mode";
+      }
     #endif
 }
 
@@ -390,7 +413,41 @@ void ofAppEGLWindow::initNative() {
 void ofAppEGLWindow::exitNative() {
     #ifdef TARGET_RASPBERRY_PI
         exitRPiNative();
-    #endif
+    #elif defined TARGET_SUNXI_MFB
+      struct fb_var_screeninfo var_screeninfo;
+      struct fb_fix_screeninfo fix_screeninfo;
+
+      int fb_fd = open("/dev/fb0", O_RDWR);
+	    if (fb_fd == -1) {
+        ofLogError("ofAppEGLWindow::exitNative") << "Tried to get display size, but failed.";
+	    } else {
+        if ((ioctl(fb_fd, FBIOGET_VSCREENINFO, &var_screeninfo) != -1) &&
+            (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fix_screeninfo) != -1)) {
+      
+          // Map the device to memory
+          long int screensize = var_screeninfo.yres_virtual * fix_screeninfo.line_length;
+          char *fbp = 0;
+          fbp = (char *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, 0);
+          if ((int)fbp == -1) {
+            ofLogError("ofAppEGLWindow::exitNative") << "Error: failed to map framebuffer device to memory";
+          }
+          //clear framebuffer
+          memset(fbp, 0, screensize);
+        } else {
+          ofLogError("ofAppEGLWindow::exitNative") << "Error: failed to get screen size to map framebuffer device to memory";
+        }
+        close(fb_fd);
+      }
+      int tty_fd = open("/dev/tty1", O_RDWR);
+      if (tty_fd != -1) {
+        if(ioctl(tty_fd, KDSETMODE, KD_TEXT) == -1) {
+          ofLogError("ofAppEGLWindow::initNative")  << "Failed to restore text mode";
+        }
+        close(tty_fd);
+      } else {
+        ofLogError("ofAppEGLWindow::initNative")  << "Failed to open tty restore text mode";
+      }
+      #endif
 }
 
 //------------------------------------------------------------
@@ -405,6 +462,8 @@ EGLNativeWindowType ofAppEGLWindow::getNativeWindow()  {
   } else {
         #ifdef TARGET_RASPBERRY_PI
     return (EGLNativeWindowType)&dispman_native_window;
+        #elif defined TARGET_SUNXI_MFB
+    return (EGLNativeWindowType)&maliFBNativeWindow;
         #else
     ofLogNotice("ofAppEGLWindow") << "getNativeWindow(): no native window type for this system, perhaps try X11?";
     return NULL;
@@ -423,6 +482,8 @@ EGLNativeDisplayType ofAppEGLWindow::getNativeDisplay() {
     return (EGLNativeDisplayType)x11Display;
   } else {
         #ifdef TARGET_RASPBERRY_PI
+    return (EGLNativeDisplayType)NULL;
+        #elif defined TARGET_SUNXI_MFB
     return (EGLNativeDisplayType)NULL;
         #else
     ofLogNotice("ofAppEGLWindow") << "getNativeDisplay(): no native window type for this system, perhaps try X11?";
@@ -758,6 +819,8 @@ bool ofAppEGLWindow::destroyWindow() {
                 vc_dispmanx_display_close(dispman_display);
                 dispman_display = DISPMANX_NO_HANDLE;
               }
+          #elif defined TARGET_SUNXI_MFB
+          
           #else
             ofLogNotice("ofAppEGLWindow") << "destroyWindow(): no native window type for this system, perhaps try X11?";
           #endif
@@ -878,6 +941,9 @@ void ofAppEGLWindow::setWindowRect(const ofRectangle& requestedWindowRect) {
 
           currentWindowRect = newRect;
 
+          #elif defined TARGET_SUNXI_MFB
+          
+          currentWindowRect = newRect;
           #else
             ofLogError("ofAppEGLWindow") << "createEGLWindow(): no native window type for this system, perhaps try X11?";
           #endif
@@ -900,6 +966,8 @@ bool ofAppEGLWindow::createWindow(const ofRectangle& requestedWindowRect) {
   } else {
     #ifdef TARGET_RASPBERRY_PI
       return createRPiNativeWindow(requestedWindowRect);
+    #elif defined TARGET_SUNXI_MFB
+      return createMaliFBNativeWindow(requestedWindowRect);
     #else
       ofLogError("ofAppEGLWindow") << "createEGLWindow(): no native window type for this system, perhaps try X11?";
       return false;
@@ -1003,7 +1071,21 @@ ofPoint ofAppEGLWindow::getScreenSize(){
       if(success < 0) {
         ofLogError("ofAppEGLWindow") << "getScreenSize(): tried to get display size but failed";
       }
-
+    #elif defined TARGET_SUNXI_MFB
+      struct fb_var_screeninfo var_screeninfo;
+      int fb_fd;
+  
+      fb_fd = open("/dev/fb0", O_RDWR);
+	    if (fb_fd == -1) {
+        ofLogError("ofAppEGLWindow::getScreenSize") << "Tried to get display size, but failed.";
+		    //fprintf(stderr, "Error: Failed to open /dev/fb0: %s\n", strerror(errno));
+		    //return errno;
+	    } else {
+        ioctl(fb_fd, FBIOGET_VSCREENINFO, &var_screeninfo);
+        screenWidth = var_screeninfo.xres;
+        screenHeight = var_screeninfo.yres;
+        close(fb_fd);
+      }
     #else
       ofLogError("ofAppEGLWindow") << "getScreenSize(): no native window type for this system, perhaps try X11?";
     #endif
@@ -1100,8 +1182,17 @@ void ofAppEGLWindow::setWindowPosition(int x, int y){
     currentWindowRect.x = x;
     currentWindowRect.y = y;
     nonFullscreenWindowRect = currentWindowRect;
+ #elif defined TARGET_SUNXI_MFB
+    ofPoint screenSize = getScreenSize();
+    x = ofClamp(x, 0, screenSize.x - currentWindowRect.width);
+    y = ofClamp(y, 0, screenSize.y - currentWindowRect.height);
 
-  #else
+    //??? Probably need some code here to move the windown on the display
+    
+    currentWindowRect.x = x;
+    currentWindowRect.y = y;
+    nonFullscreenWindowRect = currentWindowRect;
+   #else
     ofLogError("ofAppEGLWindow") << "setWindowPosition(): no native window type for this system, perhaps try X11?";
   #endif
   }
@@ -1131,6 +1222,9 @@ void ofAppEGLWindow::setWindowShape(int w, int h){
     }
   } else {
   #ifdef TARGET_RASPBERRY_PI
+    setWindowRect(ofRectangle(currentWindowRect.x,currentWindowRect.y,w,h));
+    nonFullscreenWindowRect = currentWindowRect;
+  #elif TARGET_SUNXI_MFB
     setWindowRect(ofRectangle(currentWindowRect.x,currentWindowRect.y,w,h));
     nonFullscreenWindowRect = currentWindowRect;
   #else
@@ -1189,13 +1283,15 @@ void ofAppEGLWindow::idle() {
 void ofAppEGLWindow::display() {
 
   // take care of any requests for a new screen mode
-  if (windowMode != OF_GAME_MODE && bNewScreenMode){
-    if( windowMode == OF_FULLSCREEN){
-      setWindowRect(getScreenRect());
-    } else if( windowMode == OF_WINDOW ){
-      setWindowRect(nonFullscreenWindowRect);
+  if (windowMode != OF_GAME_MODE){
+    if ( bNewScreenMode ){
+      if( windowMode == OF_FULLSCREEN){
+        setWindowRect(getScreenRect());
+      } else if( windowMode == OF_WINDOW ){
+        setWindowRect(nonFullscreenWindowRect);
+      }
+      bNewScreenMode = false;
     }
-    bNewScreenMode = false;
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////
@@ -1266,6 +1362,9 @@ void ofAppEGLWindow::display() {
   }
 
   nFramesSinceWindowResized++;
+
+
+
 
 }
 
@@ -1882,6 +1981,26 @@ bool ofAppEGLWindow::createRPiNativeWindow(const ofRectangle& requestedWindowRec
     // finished with display manager update, so sync
     vc_dispmanx_update_submit_sync( dispman_update );
 
+    currentWindowRect = windowRect;
+
+    return true;
+}
+#elif defined TARGET_SUNXI_MFB
+
+//------------------------------------------------------------
+// Mali FB BELOW
+//------------------------------------------------------------
+
+bool ofAppEGLWindow::createMaliFBNativeWindow(const ofRectangle& requestedWindowRect){
+  ofRectangle screenRect = getScreenRect();
+
+  ofRectangle windowRect = screenRect.getIntersection(requestedWindowRect);
+
+  ofLogNotice("ofAppEGLWindow::createMaliFBNativeWindow") << "screenRect.width==" << screenRect.width << ", screenRect.height=" << screenRect.height;
+  ofLogNotice("ofAppEGLWindow::createMaliFBNativeWindow") << "windowRect.width==" << windowRect.width << ", windowRect.height=" << windowRect.height;
+  
+  maliFBNativeWindow.width = (int32_t)windowRect.width;
+  maliFBNativeWindow.height = (int32_t)windowRect.height;
     currentWindowRect = windowRect;
 
     return true;
