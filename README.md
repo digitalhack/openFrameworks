@@ -2,6 +2,16 @@
 ================
 openFrameworks is a C++ toolkit for creative coding
 
+sunxi-dev Branch
+----------------
+
+This repository contains a development branch of openFrameworks targeted for the ARM SoC (System on Chip) made by Allwinner Tech.
+
+See [http://linux-sunxi.org/Main_Page] (http://linux-sunxi.org/Main_Page) for more information on sunxi SoCs.
+
+STANDARD OPENFRAMEWORKS README.MD FOLLOWS
+-----------------------------------------
+
 Download
 --------
 To grab a copy of openFrameworks for your platform, check the [download page](http://openframeworks.cc/download) on the main site.  
