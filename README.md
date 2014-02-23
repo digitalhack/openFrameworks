@@ -7,6 +7,8 @@ sunxi-dev Branch
 
 This repository contains a development branch of openFrameworks targeted for the ARM SoC (System on Chip) made by Allwinner Tech.
 
+Installation instructions can be [downloaded here] (http://digitalhacksblog.blogspot.com/2014/02/openframeworks-sunxi-mfb-update-3-was.html)
+
 See [http://linux-sunxi.org/Main_Page] (http://linux-sunxi.org/Main_Page) for more information on sunxi SoCs.
 
 STANDARD OPENFRAMEWORKS README.MD FOLLOWS
