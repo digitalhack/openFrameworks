@@ -2,10 +2,16 @@
 //--------------------------
 
 #include "ft2build.h"
+/* Corrected setup of include files for freetype as of 2.5.1 dh
 #include "freetype2/freetype/freetype.h"
 #include "freetype2/freetype/ftglyph.h"
 #include "freetype2/freetype/ftoutln.h"
 #include "freetype2/freetype/fttrigon.h"
+*/
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+#include FT_TRIGONOMETRY_H
 
 #ifdef TARGET_LINUX
 #include <fontconfig/fontconfig.h>
