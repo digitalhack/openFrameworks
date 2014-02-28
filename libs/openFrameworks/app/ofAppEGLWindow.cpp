@@ -308,6 +308,13 @@ EGLint ofAppEGLWindow::getEglVersionMinor() const {
 }
 
 //------------------------------------------------------------
+#ifdef TARGET_SUNXI_MFB
+  void ofAppEGLWindow::endInfinitLoop() {
+    terminate = true;
+  }
+#endif
+
+//------------------------------------------------------------
 void ofAppEGLWindow::init(Settings _settings) {
     terminate      = false;
 

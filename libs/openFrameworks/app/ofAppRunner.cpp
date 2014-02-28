@@ -67,7 +67,11 @@ void ofExitCallback();
 		ofLogVerbose("ofAppRunner") << "sighandler caught: " << sig;
 		if(!bExitCalled) {
 			bExitCalled = true;
-			exitApp();
+			#ifndef TARGET_SUNXI_MFB
+				exitApp();
+			#else
+				static_cast<ofAppEGLWindow*>(window.get())->endInfinitLoop();
+			#endif
 		}
 	}
 #endif
