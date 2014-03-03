@@ -90,18 +90,8 @@ PLATFORM_CFLAGS += -pipe
 
 ################################################################################
 
-PLATFORM_CFLAGS += -I/usr/include/gstreamer-0.10 `pkg-config --cflags glib-2.0 gtk+-2.0`
+PLATFORM_CFLAGS += -I/usr/include/gstreamer-0.10 -I$(OF_LIBS_PATH)/sunxi/include `pkg-config --cflags glib-2.0 gtk+-2.0`
 
 PLATFORM_LIBRARIES += GLESv2
 PLATFORM_LIBRARIES += EGL
-#PLATFORM_LIBRARIES += ssl
-#PLATFORM_LIBRARIES += cairo
-#PLATFORM_LIBRARIES += udev
-#PLATFORM_LIBRARIES += PocoCrypto
-#PLATFORM_LIBRARIES += PocoData
-#PLATFORM_LIBRARIES += PocoFoundation
-#PLATFORM_LIBRARIES += PocoNet
-#PLATFORM_LIBRARIES += PocoNetSSL
-#PLATFORM_LIBRARIES += PocoZip
-#PLATFORM_LIBRARIES += PocoXML
-#PLATFORM_LIBRARIES += PocoUtil
+
