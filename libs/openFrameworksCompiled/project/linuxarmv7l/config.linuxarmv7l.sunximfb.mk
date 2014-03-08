@@ -56,7 +56,7 @@ PLATFORM_DEFINES += TARGET_SUNXI_MFB
 #   Note: Leave a leading space when adding list items with the += operator
 ################################################################################
 
-PLATFORM_CFLAGS += -march=armv7
+PLATFORM_CFLAGS += -march=armv7-a
 PLATFORM_CFLAGS += -mtune=cortex-a8 
 PLATFORM_CFLAGS += -mfpu=neon
 PLATFORM_CFLAGS += -mfloat-abi=hard
@@ -94,4 +94,4 @@ PLATFORM_CFLAGS += -I/usr/include/gstreamer-0.10 -I$(OF_LIBS_PATH)/sunxi/include
 
 PLATFORM_LIBRARIES += GLESv2
 PLATFORM_LIBRARIES += EGL
-
+PLATFORM_LIBRARIES += dl
