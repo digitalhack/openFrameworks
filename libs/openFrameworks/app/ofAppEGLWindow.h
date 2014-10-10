@@ -143,6 +143,9 @@ public:
 	EGLint getEglVersionMajor () const;
 	EGLint getEglVersionMinor() const;
 
+#ifdef TARGET_SUNXI_MFB
+	void endInfinitLoop();
+#endif
 
 protected:
 	void init(Settings settings = Settings());
